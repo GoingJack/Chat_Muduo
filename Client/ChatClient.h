@@ -7,6 +7,7 @@
 #include <muduo/base/ThreadPool.h>
 #include "json.hpp"
 #include <semaphore.h>
+#include <vector>
 
 
 using json = nlohmann::json;
@@ -35,6 +36,12 @@ public:
 
 		//设置登录等待服务器响应的默认信号量的初值为0
 		sem_init(&_semRes, false, 0);
+
+		//设置登录等待服务器响应的默认信号量的初值为0
+		sem_init(&_semFriendList, false, 0);
+
+		//
+		sem_init(&_semChat, false, 0);
 	}
 	// 连接服务器
 	void connect()
@@ -71,9 +78,35 @@ private:
 	//登录业务服务器返回的结果处理
 	void dealServerLogin(json &js, const muduo::net::TcpConnectionPtr &con);
 
+	//保存 - 登录成功时返回本用户的id
+	int userID;
+
 	//注册业务服务器返回的结果处理
 	void dealServerRes(json &js, const muduo::net::TcpConnectionPtr &con);
 
 	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	void showLoginSuccessFun(json &js);
+
+	void showUserUI();
+
+	void showLoginSuccessFun(json &js, const muduo::net::TcpConnectionPtr &con);
+
+	void showAllfriend(json &js,const muduo::net::TcpConnectionPtr &con);
+
+	void chatwithonefriend(const muduo::net::TcpConnectionPtr &con);
+
+	//等待服务器返回好友列表信号量
+	sem_t _semFriendList;
+	
+	//存储好友列表name的容器
+	std::vector<muduo::string> _myfriendlist;
+
+
+
+
+	//
+	void TestClientWith(const muduo::net::TcpConnectionPtr &con);
+	sem_t _semChat;
+
+
+
 };

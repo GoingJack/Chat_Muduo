@@ -20,6 +20,7 @@ public:
 		// 绑定用户事件处理接口函数
 		_handlerMap.insert({ MSG_LOGIN, bind(&CommonServiceBase::login, this, _1, _2, _3) });
 		_handlerMap.insert({ MSG_REG, bind(&CommonServiceBase::reg, this, _1, _2, _3) });
+		_handlerMap.insert({ MSG_ONE_CHAT, bind(&CommonServiceBase::oneChat, this, _1, _2, _3) });
 		// 继续给handler绑定更多的接口函数
 	}
 

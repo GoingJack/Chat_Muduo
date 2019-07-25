@@ -92,7 +92,7 @@ public:
 			// 注意MYSQL_RES指针永远不为空，不管是否查询到数据
 			if (mysql.update(sql))
 			{
-				LOG_INFO << "client offline exception update User success!";
+				LOG_INFO << "client offline exception update User success!" << user.getID();
 				return true;
 			}
 			

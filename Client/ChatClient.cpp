@@ -8,6 +8,9 @@
 //----------------全局变量------------------------------
 volatile bool isLoginSuccess = false;
 volatile bool isResSuccess = false;
+volatile bool isReqFriendList = false;
+
+volatile bool isChatSend = false;
 
 
 // TcpClient绑定回调函数，当连接或者断开服务器时调用
@@ -50,7 +53,37 @@ void ChatClient::onMessage(const muduo::net::TcpConnectionPtr &con,
 		dealServerRes(js, con);
 		sem_post(&_semRes);
 	}
-	
+	else if (js["msgid"] == MSG_REQUEST_FRIENDLIST_ACK)//请求好友列表
+	{
+		sem_post(&_semFriendList);
+		if (js["code"] == ACK_SUCCESS)
+		{
+			isReqFriendList = true;
+			//保存好友列表信息
+			std::vector<muduo::string> tmp = js["friendlist"];
+			_myfriendlist = tmp;
+		}
+		else
+		{
+			isReqFriendList = false;
+		}
+	}
+	else if (js["msgid"] == MSG_ONE_CHAT_ACK)
+	{
+		if (js["code"] == ACK_SUCCESS)
+		{
+			isChatSend = true;
+		}
+		else
+		{
+			isChatSend = false;
+		}
+		sem_post(&_semChat);
+	}
+	else if (js["msgid"] == MSG_ONE_CHAT)
+	{
+		std::cout << js["id"] << ":" << js["chatmsg"] << std::endl;
+	}
 }
 
 // 处理用户的输入操作
@@ -70,6 +103,7 @@ void ChatClient::userClient(const muduo::net::TcpConnectionPtr &con)
 		if (it == actionMap.end())
 		{
 			LOG_INFO << "input number invaild,please try again!";
+			fflush(stdin);
 		}
 		else
 		{
@@ -120,10 +154,15 @@ void ChatClient::dealLogin(const muduo::net::TcpConnectionPtr &con)
 	//#4如果登录成功进入聊天界面，如果失败接着进入userClient函数
 	if (isLoginSuccess)
 	{
-		std::cout << "chat UI" << std::endl;
+		//进入登录成功的页面
+		//showLoginSuccessFun(js, con);
+		_pool.start(1);
+		_pool.run(bind(&ChatClient::TestClientWith, this, con));
+
 	}
 	else
 	{
+		//登陆失败继续初始化界面
 		userClient(con);
 	}
 }
@@ -164,6 +203,7 @@ void ChatClient::dealServerLogin(json &js, const muduo::net::TcpConnectionPtr &c
 	if (js["code"] == ACK_SUCCESS)
 	{
 		LOG_INFO << "login success!";
+		userID = js["id"];
 		isLoginSuccess = true;
 	}
 	else
@@ -187,13 +227,91 @@ void ChatClient::dealServerRes(json &js, const muduo::net::TcpConnectionPtr &con
 	}
 }
 
-void ChatClient::showLoginSuccessFun(json &js)
+void ChatClient::showUserUI()
 {
 	std::cout << "------------------------------" << std::endl;
-	std::cout << "1,选择好友聊天" << std::endl;
-	std::cout << "2,添加好友" << std::endl;
-	std::cout << "3,好友请求列表" << std::endl;
+	std::cout << "1,chat with friend." << std::endl;
+	std::cout << "2,add new friend." << std::endl;
+	std::cout << "3," << std::endl;
 	std::cout << "4," << std::endl;
 	std::cout << "------------------------------" << std::endl;
 }
 
+void ChatClient::showLoginSuccessFun(json &js, const muduo::net::TcpConnectionPtr &con)
+{
+	std::map<int, std::function<void(const muduo::net::TcpConnectionPtr &)>> actionMap;
+	actionMap.insert({ 1,bind(&ChatClient::dealLogin,this,std::placeholders::_1) });
+	actionMap.insert({ 2,bind(&ChatClient::dealRes,this,std::placeholders::_1) });
+	int choice = 0;
+	for (;;)
+	{
+		showUserUI();
+		std::cin >> choice;
+		auto it = actionMap.find(choice);
+		if (it == actionMap.end())
+		{
+			LOG_INFO << "input number invaild,please try again!";
+			fflush(stdin);
+		}
+		else
+		{
+			it->second(con);
+			break;
+		}
+	}
+}
+
+void ChatClient::showAllfriend(json &js,const muduo::net::TcpConnectionPtr &con)
+{
+	//#1 封装请求好友列表json 并发送
+	json sendJs;
+	sendJs["msgid"] = MSG_REQUEST_FRIENDLIST;
+	sendJs["id"] = js["id"];
+	con->send(js.dump());
+
+	sem_wait(&_semFriendList);
+	//#2 服务器返回之后得到好友列表并且显示好友列表
+	if (isReqFriendList)
+	{
+		for (std::string val : _myfriendlist)
+		{
+			std::cout << val << std::endl;
+		}
+	}
+	else
+	{
+		std::cout << "request failed";
+	}
+
+}
+
+void ChatClient::chatwithonefriend(const muduo::net::TcpConnectionPtr &con)
+{
+
+}
+
+//----------------直接聊天-----------------------------
+
+void ChatClient::TestClientWith(const muduo::net::TcpConnectionPtr &con)
+{
+	int id = 0;
+	std::cout << "input your friend id" << std::endl;
+	std::cin >> id;
+	while (1)
+	{
+		//std::cout << "input your content:";
+		std::string content;
+		std::cin >> content;
+		json js;
+		js["msgid"] = MSG_ONE_CHAT;
+		js["chatmsg"] = content;
+		js["id"] = id;
+		js["fromid"] = userID;
+		con->send(js.dump());
+		sem_wait(&_semChat);
+		if (!isChatSend)
+		{
+			std::cout << "send failed" << std::endl;
+		}
+	}
+}

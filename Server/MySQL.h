@@ -43,7 +43,7 @@ public:
 		if (mysql_query(_conn, sql.c_str()))
 		{
 			LOG_INFO << __FILE__ << ":" << __LINE__ << ":"
-				<< sql << "¸üÐÂÊ§°Ü!";
+				<< sql << "update error!!!";
 			return false;
 		}
 		return true;
@@ -54,7 +54,7 @@ public:
 		if (mysql_query(_conn, sql.c_str()))
 		{
 			LOG_INFO << __FILE__ << ":" << __LINE__ << ":"
-				<< sql << "²éÑ¯Ê§°Ü!";
+				<< sql << "query error!!!";
 			return nullptr;
 		}
 		return mysql_use_result(_conn);

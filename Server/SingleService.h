@@ -24,27 +24,25 @@ public:
 		json &js, muduo::Timestamp time)
 	{
 		//给userid的一个默认值
-		js["userid"] = 0;
-		int id = js["userid"];
+		
 		string name = js["username"];
 		string pwd = js["userpwd"];
 
 		UserDO user;
-		user.setID(id);
+		
 		user.setName(name);
 		user.setPassword(pwd);
 
 		if (userModelPtr->login(user)) // 登录成功
 		{
-			LOG_INFO << "login service!name->" << name << " pwd->"
-				<< pwd << " success!!!";
+			LOG_INFO << "one client is login success!name->" << name << " pwd->"
+				<< pwd;
 
 			json js;
 			js["msgid"] = MSG_LOGIN_ACK;
 			js["code"] = ACK_SUCCESS;
 			// 登录成功，把用户的id返回
-			LOG_INFO << "one client is login success!";
-			js["userid"] = user.getID();
+			js["id"] = user.getID();
 			// 将登录成功的id和con关联起来，用以处理客户端异常断开情况
 			//_connMap.insert(user.getID(), con);
 			_connMap[user.getID()] = con;
@@ -53,8 +51,8 @@ public:
 		}
 		else // 登录失败
 		{
-			LOG_INFO << "login service!name->" << name << " pwd->"
-				<< pwd << " error!!!";
+			LOG_INFO << "login service  error!!!name->" << name << " pwd->"
+				<< pwd  ;
 
 			json js;
 			js["msgid"] = MSG_LOGIN_ACK;
@@ -77,8 +75,8 @@ public:
 
 		if (userModelPtr->add(user)) // 注册插入数据成功
 		{
-			LOG_INFO << "reg service!name->" << name << " pwd->"
-				<< pwd << " success!!!";
+			LOG_INFO << "reg service success!name->" << name << " pwd->"
+				<< pwd ;
 
 			json js;
 			js["msgid"] = MSG_REG_ACK;
@@ -87,8 +85,8 @@ public:
 		}
 		else // 注册插入数据失败
 		{
-			LOG_INFO << "reg service!name->" << name << " pwd->"
-				<< pwd << " error!!!";
+			LOG_INFO << "reg service error!name->" << name << " pwd->"
+				<< pwd ;
 
 			json js;
 			js["msgid"] = MSG_REG_ACK;
@@ -115,7 +113,19 @@ public:
 	virtual void oneChat(const muduo::net::TcpConnectionPtr &con,
 		json &js, muduo::Timestamp time)
 	{
+		int id = js["id"];//toid
+		json jstmp;
+		jstmp["msgid"] = MSG_ONE_CHAT_ACK;
+		jstmp["code"] = ACK_SUCCESS;
+		con->send(jstmp.dump());
 
+		auto it = _connMap.find(js["id"]);
+
+		json msg;
+		msg["msgid"] = MSG_ONE_CHAT;
+		msg["id"] = js["fromid"];
+		msg["chatmsg"] = js["chatmsg"];
+		it->second->send(msg.dump());
 	}
 
 	// group chat service
@@ -128,9 +138,8 @@ public:
 	// update  user state when client exit
 	void exitChlient(const muduo::net::TcpConnectionPtr &con)
 	{
-		bool issuccess = false;
 		auto it = _connMap.begin();
-
+		//从con和id的key-value中找断开连接请求的userid更新其数据库中的state值为OFFLINE
 		for (; it != _connMap.end(); ++it)
 		{
 			if (it->second == con)
@@ -138,13 +147,8 @@ public:
 				UserDO user;
 				user.setID(it->first);
 				userModelPtr->exit(user);
-				issuccess = true;
 				break;
 			}
-		}
-		if (!issuccess)
-		{
-			LOG_INFO << "some error occured when update state";
 		}
 	}
 private:
