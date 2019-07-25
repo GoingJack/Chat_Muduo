@@ -45,6 +45,10 @@ public:
 			// 登录成功，把用户的id返回
 			LOG_INFO << "one client is login success!";
 			js["userid"] = user.getID();
+			// 将登录成功的id和con关联起来，用以处理客户端异常断开情况
+			//_connMap.insert(user.getID(), con);
+			_connMap[user.getID()] = con;
+			//将封装好的js字符串发送
 			con->send(js.dump());
 		}
 		else // 登录失败
@@ -120,12 +124,36 @@ public:
 	{
 
 	}
+
+	// update  user state when client exit
+	void exitChlient(const muduo::net::TcpConnectionPtr &con)
+	{
+		bool issuccess = false;
+		auto it = _connMap.begin();
+
+		for (; it != _connMap.end(); ++it)
+		{
+			if (it->second == con)
+			{
+				UserDO user;
+				user.setID(it->first);
+				userModelPtr->exit(user);
+				issuccess = true;
+				break;
+			}
+		}
+		if (!issuccess)
+		{
+			LOG_INFO << "some error occured when update state";
+		}
+	}
 private:
 	unique_ptr<UserModelBase> userModelPtr;
 	unique_ptr<FriendModelBase> friendModelPtr;
 	unique_ptr<GroupModelBase> groupModelPtr;
 
-	std::unordered_map<int, muduo::net::TcpConnectionPtr &> _connMap;//连接和用户ID关联起来
+	std::unordered_map<int, muduo::net::TcpConnectionPtr> _connMap;//连接和用户ID关联起来
+
 
 
 	SingleService()

@@ -77,39 +77,6 @@ void ChatClient::userClient(const muduo::net::TcpConnectionPtr &con)
 			break;
 		}
 	}
-
-	//while (1)
-	//{
-	//	int op = 0;
-	//	showOption();
-	//	std::cout << "please input your choice:";
-	//	std::cin >> op;
-	//	switch (op)
-	//	{
-	//	case 1:
-	//		dealLogin(con);
-	//		sem_wait(&_semLogin);
-	//		if (isLoginSuccess)
-	//		{
-	//			//进入聊天界面
-	//			std::cout << "login success UI" << std::endl;
-	//		}
-	//		break;
-	//	case 2:
-	//		dealRes(con);
-	//		sem_wait(&_semRes);
-	//		if (isResSuccess)
-	//		{
-	//			std::cout << "res success" << std::endl;
-	//		}
-	//		break;
-	//	case 3:
-	//		exit(0);
-	//	default:
-	//		LOG_INFO << "your choice is error!";
-	//		break;
-	//	}
-	//}
 }
 
 //初次启动客户端显示的菜单
@@ -223,7 +190,10 @@ void ChatClient::dealServerRes(json &js, const muduo::net::TcpConnectionPtr &con
 void ChatClient::showLoginSuccessFun(json &js)
 {
 	std::cout << "------------------------------" << std::endl;
-
+	std::cout << "1,选择好友聊天" << std::endl;
+	std::cout << "2,添加好友" << std::endl;
+	std::cout << "3,好友请求列表" << std::endl;
+	std::cout << "4," << std::endl;
 	std::cout << "------------------------------" << std::endl;
 }
 

@@ -17,9 +17,14 @@ void ChatServer::onConnection(const muduo::net::TcpConnectionPtr &con)
 		LOG_INFO << con->
 	}
 	LOG_INFO << "onConnection tid:" << pthread_self();*/
-	if (con->connected())
+	if (con->connected())//有新的客户端连接
 	{
-		LOG_INFO << "one client success!"<<con->
+		LOG_INFO << "one client success" << con->peerAddress().toIpPort();
+	}
+	else//客户端异常断开
+	{
+		LOG_INFO << "one client success" << con->peerAddress().toIpPort();
+		App().exitChlient(con);
 	}
 	
 }
@@ -33,19 +38,18 @@ void ChatServer::onMessage(const muduo::net::TcpConnectionPtr &con,
 	muduo::Timestamp time)
 {
 	muduo::string msg(buf->retrieveAllAsString());
-	LOG_INFO << msg;
 	json js = json::parse(msg);
 	int msgid = js["msgid"];
 	LOG_INFO << msgid;
 	//std::unordered_map<int, Handler> _handlerMap;
 	App().handler()[js["msgid"].get<int>()](con, js, time);
 
-	if (js["msgid"] == MSG_LOGIN)
+	/*if (js["msgid"] == MSG_LOGIN)
 	{
 		App().login(con, js, time);
 	}
 	else if (js["msgid"] == MSG_REG)
 	{
 		App().reg(con, js, time);
-	}
+	}*/
 }

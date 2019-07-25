@@ -11,6 +11,8 @@ public:
 	virtual bool add(UserDO &user) = 0;
 	// 用户登录检查
 	virtual bool login(UserDO &user) = 0;
+	//用户的状态置为不在线
+	virtual bool exit(UserDO &user) = 0;
 };
 
 // User表的Model层操作
@@ -22,11 +24,11 @@ public:
 	{
 		// 组织sql语句
 		char sql[1024] = { 0 };
-		sprintf(sql, "insert into User(name,password,state) values('%s', '%s', '%s')", 
-			user.getName().c_str(), 
-			user.getPwd().c_str(), 
+		sprintf(sql, "insert into User(name,password,state) values('%s', '%s', '%s')",
+			user.getName().c_str(),
+			user.getPwd().c_str(),
 			user.getState().c_str());
-		
+
 		MySQL mysql;
 		if (mysql.connect())
 		{
@@ -73,6 +75,29 @@ public:
 			}
 		}
 		LOG_INFO << "login error => sql:" << sql;
+		return false;
+	}
+
+	// 重写exit接口方法，修改user表的状态
+	bool exit(UserDO &user)
+	{
+		// 组织sql语句
+		char sql[1024] = { 0 };
+		sprintf(sql, "update User set state = 'OFFLINE' where id = %d",
+			user.getID());
+
+		MySQL mysql;
+		if (mysql.connect())
+		{
+			// 注意MYSQL_RES指针永远不为空，不管是否查询到数据
+			if (mysql.update(sql))
+			{
+				LOG_INFO << "client offline exception update User success!";
+				return true;
+			}
+			
+		}
+		LOG_INFO << "client offline exception update User error!" << user.getID();
 		return false;
 	}
 };

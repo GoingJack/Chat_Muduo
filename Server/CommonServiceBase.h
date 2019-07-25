@@ -47,6 +47,7 @@ public:
 	virtual void groupChat(const muduo::net::TcpConnectionPtr &con,
 		json &js, muduo::Timestamp time) = 0;
 
+
 	using Handler = std::function<void(const muduo::net::TcpConnectionPtr&, json&, muduo::Timestamp)>;
 	std::unordered_map<int, Handler> handler()const { return _handlerMap; }
 protected:
