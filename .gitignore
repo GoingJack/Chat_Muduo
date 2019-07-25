@@ -1,0 +1,13 @@
+Project1/
+zTestProject/
+x64/
+.vs/
+*.out
+*/bin/
+*/obj/
+*/readme/
+*.log
+*.vcxproj
+*.user
+*.tlog
+*.filters
