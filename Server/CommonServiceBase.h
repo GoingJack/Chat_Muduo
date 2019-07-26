@@ -21,6 +21,7 @@ public:
 		_handlerMap.insert({ MSG_LOGIN, bind(&CommonServiceBase::login, this, _1, _2, _3) });
 		_handlerMap.insert({ MSG_REG, bind(&CommonServiceBase::reg, this, _1, _2, _3) });
 		_handlerMap.insert({ MSG_ONE_CHAT, bind(&CommonServiceBase::oneChat, this, _1, _2, _3) });
+		_handlerMap.insert({ MSG_REQUEST_FRIENDLIST ,bind(&CommonServiceBase::getFriendlist,this,_1,_2,_3) });
 		// 继续给handler绑定更多的接口函数
 	}
 
@@ -46,6 +47,10 @@ public:
 
 	// group chat service
 	virtual void groupChat(const muduo::net::TcpConnectionPtr &con,
+		json &js, muduo::Timestamp time) = 0;
+
+	//friend list
+	virtual void getFriendlist(const muduo::net::TcpConnectionPtr &con,
 		json &js, muduo::Timestamp time) = 0;
 
 

@@ -90,15 +90,15 @@ private:
 
 	void showLoginSuccessFun(json &js, const muduo::net::TcpConnectionPtr &con);
 
-	void showAllfriend(json &js,const muduo::net::TcpConnectionPtr &con);
+	void showAllfriend(const muduo::net::TcpConnectionPtr &con);
 
 	void chatwithonefriend(const muduo::net::TcpConnectionPtr &con);
 
 	//等待服务器返回好友列表信号量
 	sem_t _semFriendList;
 	
-	//存储好友列表name的容器
-	std::vector<muduo::string> _myfriendlist;
+	//存储好友列表的id-name   MAP映射
+	std::map<int,muduo::string> _myfriendMap;
 
 
 
@@ -107,6 +107,14 @@ private:
 	void TestClientWith(const muduo::net::TcpConnectionPtr &con);
 	sem_t _semChat;
 
+	//------------------------登录成功-----------------------------
+	//打印登录成功显示的菜单
+	void showLoginSuccessMenu();
 
+	//登录成功后功能转发函数
+	void dealLoginSuccessMain();
+
+	//注销当前用户
+	void logout(const muduo::net::TcpConnectionPtr &con);
 
 };

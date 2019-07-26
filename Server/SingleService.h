@@ -151,6 +151,31 @@ public:
 			}
 		}
 	}
+
+	// 
+	void getFriendlist(const muduo::net::TcpConnectionPtr &con,
+		json &js, muduo::Timestamp time)
+	{
+		
+		std::map<int, muduo::string> res;
+
+		int id = js["id"];
+
+		json backjs;
+		if (userModelPtr->friendlist(id, res))
+		{
+			backjs["friendlist"] = res;
+			backjs["code"] = ACK_SUCCESS;
+			backjs["msgid"] = MSG_REQUEST_FRIENDLIST_ACK;
+			con->send(backjs.dump());
+		}
+		else
+		{
+			backjs["msgid"] = MSG_REQUEST_FRIENDLIST_ACK;
+			backjs["code"] = ACK_ERROR;
+			con->send(backjs.dump());
+		}
+	}
 private:
 	unique_ptr<UserModelBase> userModelPtr;
 	unique_ptr<FriendModelBase> friendModelPtr;

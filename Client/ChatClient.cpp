@@ -60,8 +60,8 @@ void ChatClient::onMessage(const muduo::net::TcpConnectionPtr &con,
 		{
 			isReqFriendList = true;
 			//保存好友列表信息
-			std::vector<muduo::string> tmp = js["friendlist"];
-			_myfriendlist = tmp;
+			std::map<int, muduo::string> tmp = js["friendlist"];
+			_myfriendMap = tmp;
 		}
 		else
 		{
@@ -96,6 +96,7 @@ void ChatClient::userClient(const muduo::net::TcpConnectionPtr &con)
 	int choice = 0;
 	for (;;)
 	{
+		fflush(stdout);
 		showOption();
 		std::cin >> choice;
 
@@ -103,7 +104,7 @@ void ChatClient::userClient(const muduo::net::TcpConnectionPtr &con)
 		if (it == actionMap.end())
 		{
 			LOG_INFO << "input number invaild,please try again!";
-			fflush(stdin);
+			
 		}
 		else
 		{
@@ -137,16 +138,16 @@ void ChatClient::dealLogin(const muduo::net::TcpConnectionPtr &con)
 	json js;
 	js["msgid"] = MSG_LOGIN;//
 	//#1.2用户名
-	LOG_INFO << "please input your username";
+	std::cout << "please input your username: ";
 	std::cin >> username;
 	js["username"] = username;
 	//#1.3密码
-	LOG_INFO << "please input your password";
+	std::cout << "please input your password: ";
 	std::cin >> password;
 	js["userpwd"] = password;
 	//#2封装完毕发送给服务器
 	con->send(js.dump());
-	LOG_INFO << "now is waiting server return...";
+	std::cout << "now is waiting server return...";
 
 	//#3登录提交数据等待服务器响应对信号量_semLogin进行P操作
 	sem_wait(&_semLogin);
@@ -155,9 +156,9 @@ void ChatClient::dealLogin(const muduo::net::TcpConnectionPtr &con)
 	if (isLoginSuccess)
 	{
 		//进入登录成功的页面
-		//showLoginSuccessFun(js, con);
-		_pool.start(1);
-		_pool.run(bind(&ChatClient::TestClientWith, this, con));
+		showLoginSuccessFun(js, con);
+		/*_pool.start(1);
+		_pool.run(bind(&ChatClient::TestClientWith, this, con));*/
 
 	}
 	else
@@ -227,21 +228,29 @@ void ChatClient::dealServerRes(json &js, const muduo::net::TcpConnectionPtr &con
 	}
 }
 
+
+//------------------------登录成功-----------------------------
+
+//显示主功能区域
 void ChatClient::showUserUI()
 {
 	std::cout << "------------------------------" << std::endl;
-	std::cout << "1,chat with friend." << std::endl;
-	std::cout << "2,add new friend." << std::endl;
-	std::cout << "3," << std::endl;
-	std::cout << "4," << std::endl;
+	std::cout << "1,show online friend." << std::endl;
+	std::cout << "2,show all	friend." << std::endl;
+	std::cout << "3,show all	request." << std::endl;
+	std::cout << "4,show all	group" << std::endl;
+	std::cout << "5,show all	message" << std::endl;
+	std::cout << "6,add  friend/group" << std::endl;
+	std::cout << "7,logout" << std::endl;
 	std::cout << "------------------------------" << std::endl;
 }
 
+//功能派发函数
 void ChatClient::showLoginSuccessFun(json &js, const muduo::net::TcpConnectionPtr &con)
 {
 	std::map<int, std::function<void(const muduo::net::TcpConnectionPtr &)>> actionMap;
 	actionMap.insert({ 1,bind(&ChatClient::dealLogin,this,std::placeholders::_1) });
-	actionMap.insert({ 2,bind(&ChatClient::dealRes,this,std::placeholders::_1) });
+	actionMap.insert({ 2,bind(&ChatClient::showAllfriend,this,std::placeholders::_1) });
 	int choice = 0;
 	for (;;)
 	{
@@ -256,39 +265,60 @@ void ChatClient::showLoginSuccessFun(json &js, const muduo::net::TcpConnectionPt
 		else
 		{
 			it->second(con);
-			break;
 		}
 	}
 }
 
-void ChatClient::showAllfriend(json &js,const muduo::net::TcpConnectionPtr &con)
+//显示所有的好友
+void ChatClient::showAllfriend(const muduo::net::TcpConnectionPtr &con)
 {
 	//#1 封装请求好友列表json 并发送
 	json sendJs;
 	sendJs["msgid"] = MSG_REQUEST_FRIENDLIST;
-	sendJs["id"] = js["id"];
-	con->send(js.dump());
+
+	//当前用户的UserID
+	sendJs["id"] = userID;
+	con->send(sendJs.dump());
 
 	sem_wait(&_semFriendList);
 	//#2 服务器返回之后得到好友列表并且显示好友列表
 	if (isReqFriendList)
 	{
-		for (std::string val : _myfriendlist)
+		std::cout << "-----------------------" << std::endl;
+		std::cout << "id	" << "username	" << std::endl;
+		auto it = _myfriendMap.begin();
+		while (it != _myfriendMap.end())
 		{
-			std::cout << val << std::endl;
+			std::cout << it->first << "\t" << it->second << std::endl;
+			++it;
 		}
+		std::cout << "-----------------------" << std::endl;
 	}
 	else
 	{
-		std::cout << "request failed";
+		std::cout << "request friendilist failed" << std::endl;
 	}
 
 }
 
+//和指定好友进行聊天
 void ChatClient::chatwithonefriend(const muduo::net::TcpConnectionPtr &con)
 {
 
 }
+
+//注销当前用户
+void ChatClient::logout(const muduo::net::TcpConnectionPtr &con)
+{
+
+}
+
+
+
+
+
+
+
 
 //----------------直接聊天-----------------------------
 

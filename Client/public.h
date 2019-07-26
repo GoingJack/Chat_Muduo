@@ -15,8 +15,11 @@ const int MSG_ONE_CHAT = 8; // one to one chat msg
 const int MSG_ONE_CHAT_ACK = 9; // one to one chat ack msg
 const int MSG_LOGINOUT = 10; // logout msg
 
-const int MSG_REQUEST_FRIENDLIST_ACK = 11;
-const int MSG_REQUEST_FRIENDLIST = 12;
+const int MSG_REQUEST_FRIENDLIST_ACK = 11;//request friend list ack msg
+const int MSG_REQUEST_FRIENDLIST = 12;//request friend list msg
+
+const int MSG_LOGOUT = 13;
+const int MSG_LOGOUT_ACK = 14;
 
 const int ACK_SUCCESS = 100; // msg process ok
 const int ACK_ERROR = 101; // msg process err
