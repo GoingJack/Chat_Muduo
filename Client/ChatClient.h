@@ -43,6 +43,9 @@ public:
 		//设置注销等待服务器响应的默认信号量的初值为0
 		sem_init(&_semLogout, false, 0);
 
+		//设置在线用户等待服务器响应的默认信号量的初值为0
+		sem_init(&_semOnLineFriend, false, 0);
+
 		//
 		sem_init(&_semChat, false, 0);
 	}
@@ -103,7 +106,11 @@ private:
 	//存储好友列表的id-name   MAP映射
 	std::map<int,muduo::string> _myfriendMap;
 
+	//只显示当前在线的好友
+	void showOnlineFriend(const muduo::net::TcpConnectionPtr &con);
 
+	//等待返回在线用户列表的信号量
+	sem_t _semOnLineFriend;
 
 
 	//

@@ -19,6 +19,8 @@ public:
 	virtual bool friendlist(const int userid, std::map<int, muduo::string>&res) = 0;
 	//从数据更新那些退出登录用户的登录状态
 	virtual bool logout(const int userid) = 0;
+	//从数据库中获取在线的好友列表
+	virtual bool onlinefriendlist(const int userid, std::map<int, muduo::string>&res) = 0;
 };
 
 // User表的Model层操作
@@ -149,6 +151,30 @@ public:
 				return true;
 			}
 		}
+		return false;
+	}
+	bool onlinefriendlist(const int userid, std::map<int, muduo::string>&_mapres)
+	{
+		char sql[1024] = { 0 };
+		sprintf(sql, "select id,name from User where id in (select friendid from Friend where userid = %d) and state = 'ONLINE'"
+			, userid);
+		MySQL mysql;
+		if (mysql.connect())
+		{
+			MYSQL_RES *res = mysql.query(sql);
+			if (res != nullptr)
+			{
+				MYSQL_ROW row;
+				while (row = mysql_fetch_row(res))
+				{
+					int id = atoi(row[0]);
+					_mapres[id] = row[1];
+				}
+				return true;
+			}
+		}
+		else
+			LOG_INFO << "function request online friendlist -> connect to database error!";
 		return false;
 	}
 };

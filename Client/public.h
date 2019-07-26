@@ -21,5 +21,8 @@ const int MSG_REQUEST_FRIENDLIST = 12;//request friend list msg
 const int MSG_LOGOUT = 13;
 const int MSG_LOGOUT_ACK = 14;
 
+const int MSG_REQUEST_ONLINE_FRIEND = 14;
+const int MSG_REQUEST_ONLINE_FRIEND_ACK = 15;
+
 const int ACK_SUCCESS = 100; // msg process ok
 const int ACK_ERROR = 101; // msg process err

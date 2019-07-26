@@ -194,6 +194,24 @@ public:
 		con->send(back.dump());
 	}
 
+	//request online friendlist
+	virtual void onlinefriendlist(const muduo::net::TcpConnectionPtr &con,
+		json &js, muduo::Timestamp time)
+	{
+		json back;
+		back["msgid"] = MSG_REQUEST_ONLINE_FRIEND_ACK;
+		std::map<int, muduo::string> _mymap;
+		if (userModelPtr->onlinefriendlist(js["id"], _mymap))
+		{
+			back["code"] = ACK_SUCCESS;
+		}
+		else
+		{
+			back["code"] = ACK_ERROR;
+		}
+		back["onlinefriendlist"] = _mymap;
+		con->send(back.dump());
+	}
 private:
 	unique_ptr<UserModelBase> userModelPtr;
 	unique_ptr<FriendModelBase> friendModelPtr;

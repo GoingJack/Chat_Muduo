@@ -68,7 +68,7 @@ void ChatClient::onMessage(const muduo::net::TcpConnectionPtr &con,
 			isReqFriendList = false;
 		}
 	}
-	else if (js["msgid"] == MSG_ONE_CHAT_ACK)
+	else if (js["msgid"] == MSG_ONE_CHAT_ACK)//聊天确认
 	{
 		if (js["code"] == ACK_SUCCESS)
 		{
@@ -80,13 +80,20 @@ void ChatClient::onMessage(const muduo::net::TcpConnectionPtr &con,
 		}
 		sem_post(&_semChat);
 	}
-	else if (js["msgid"] == MSG_ONE_CHAT)
+	else if (js["msgid"] == MSG_ONE_CHAT)//有新的聊天消息发送了过来
 	{
 		std::cout << js["id"] << ":" << js["chatmsg"] << std::endl;
 	}
-	else if (js["msgid"] == MSG_LOGOUT_ACK)
+	else if (js["msgid"] == MSG_LOGOUT_ACK)//退出登录的服务器确认操作
 	{
 		sem_post(&_semLogout);
+	}
+	else if (js["msgid"] == MSG_REQUEST_ONLINE_FRIEND_ACK)//请求在线好友列表信息
+	{
+		_myfriendMap.clear();
+		std::map<int, muduo::string> _tmp = js["onlinefriendlist"];
+		_myfriendMap = _tmp;
+		sem_post(&_semOnLineFriend);//默认成功得到Map映射
 	}
 
 }
@@ -254,8 +261,9 @@ void ChatClient::showUserUI()
 void ChatClient::showLoginSuccessFun(json &js, const muduo::net::TcpConnectionPtr &con)
 {
 	std::map<int, std::function<void(const muduo::net::TcpConnectionPtr &)>> actionMap;
-	actionMap.insert({ 1,bind(&ChatClient::dealLogin,this,std::placeholders::_1) });
+	actionMap.insert({ 1,bind(&ChatClient::showOnlineFriend,this,std::placeholders::_1) });
 	actionMap.insert({ 2,bind(&ChatClient::showAllfriend,this,std::placeholders::_1) });
+
 	actionMap.insert({ 7,bind(&ChatClient::logout,this,std::placeholders::_1) });
 	int choice = 0;
 	for (;;)
@@ -290,7 +298,7 @@ void ChatClient::showAllfriend(const muduo::net::TcpConnectionPtr &con)
 	//#2 服务器返回之后得到好友列表并且显示好友列表
 	if (isReqFriendList)
 	{
-		std::cout << "-----------------------" << std::endl;
+		std::cout << "--------all friend list---------------" << std::endl;
 		std::cout << "id	" << "username	" << std::endl;
 		auto it = _myfriendMap.begin();
 		while (it != _myfriendMap.end())
@@ -298,7 +306,7 @@ void ChatClient::showAllfriend(const muduo::net::TcpConnectionPtr &con)
 			std::cout << it->first << "\t" << it->second << std::endl;
 			++it;
 		}
-		std::cout << "-----------------------" << std::endl;
+		std::cout << "--------------------------------------" << std::endl;
 	}
 	else
 	{
@@ -326,6 +334,29 @@ void ChatClient::logout(const muduo::net::TcpConnectionPtr &con)
 	//回到主界面
 	userClient(con);
 }
+
+//只显示当前在线的好友
+void ChatClient::showOnlineFriend(const muduo::net::TcpConnectionPtr &con)
+{
+	//#1封装json字符串，向服务器请求消息
+	json js;
+	js["msgid"] = MSG_REQUEST_ONLINE_FRIEND;
+	js["id"] = userID;
+	con->send(js.dump());
+	sem_wait(&_semOnLineFriend);
+
+	//#2接受服务器的响应
+	std::cout << "---------online friend list--------------" << std::endl;
+	std::cout << "id	" << "username	" << std::endl;
+	auto it = _myfriendMap.begin();
+	while (it != _myfriendMap.end())
+	{
+		std::cout << it->first << "\t" << it->second << std::endl;
+		++it;
+	}
+	std::cout << "-----------------------------------------" << std::endl;
+}
+
 
 
 
