@@ -84,6 +84,11 @@ void ChatClient::onMessage(const muduo::net::TcpConnectionPtr &con,
 	{
 		std::cout << js["id"] << ":" << js["chatmsg"] << std::endl;
 	}
+	else if (js["msgid"] == MSG_LOGOUT_ACK)
+	{
+		sem_post(&_semLogout);
+	}
+
 }
 
 // 处理用户的输入操作
@@ -251,6 +256,7 @@ void ChatClient::showLoginSuccessFun(json &js, const muduo::net::TcpConnectionPt
 	std::map<int, std::function<void(const muduo::net::TcpConnectionPtr &)>> actionMap;
 	actionMap.insert({ 1,bind(&ChatClient::dealLogin,this,std::placeholders::_1) });
 	actionMap.insert({ 2,bind(&ChatClient::showAllfriend,this,std::placeholders::_1) });
+	actionMap.insert({ 7,bind(&ChatClient::logout,this,std::placeholders::_1) });
 	int choice = 0;
 	for (;;)
 	{
@@ -310,7 +316,15 @@ void ChatClient::chatwithonefriend(const muduo::net::TcpConnectionPtr &con)
 //注销当前用户
 void ChatClient::logout(const muduo::net::TcpConnectionPtr &con)
 {
+	json js;
+	js["msgid"] = MSG_LOGOUT;
+	js["id"] = userID;
+	con->send(js.dump());
+	sem_wait(&_semLogout);
+	//这里可以判断服务器是否修改，时间原因之后工作
 
+	//回到主界面
+	userClient(con);
 }
 
 

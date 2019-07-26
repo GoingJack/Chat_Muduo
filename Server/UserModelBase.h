@@ -17,6 +17,8 @@ public:
 	virtual bool exit(UserDO &user) = 0;
 	//从数据库中获取好友列表
 	virtual bool friendlist(const int userid, std::map<int, muduo::string>&res) = 0;
+	//从数据更新那些退出登录用户的登录状态
+	virtual bool logout(const int userid) = 0;
 };
 
 // User表的Model层操作
@@ -132,6 +134,21 @@ public:
 			return false;
 		}
 		LOG_INFO << "function(get friend list) -> connected to database";
+		return false;
+	}
+	bool logout(const int userid)
+	{
+		char sql[1024] = { 0 };
+		sprintf(sql, "update User set state = 'OFFLINE' where id = %d", userid);
+
+		MySQL mysql;
+		if (mysql.connect())
+		{
+			if (mysql.update(sql))
+			{
+				return true;
+			}
+		}
 		return false;
 	}
 };

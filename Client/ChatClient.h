@@ -40,6 +40,9 @@ public:
 		//设置登录等待服务器响应的默认信号量的初值为0
 		sem_init(&_semFriendList, false, 0);
 
+		//设置注销等待服务器响应的默认信号量的初值为0
+		sem_init(&_semLogout, false, 0);
+
 		//
 		sem_init(&_semChat, false, 0);
 	}
@@ -116,5 +119,6 @@ private:
 
 	//注销当前用户
 	void logout(const muduo::net::TcpConnectionPtr &con);
-
+	//注销使用的信号量
+	sem_t _semLogout;
 };

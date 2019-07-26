@@ -152,8 +152,8 @@ public:
 		}
 	}
 
-	// 
-	void getFriendlist(const muduo::net::TcpConnectionPtr &con,
+	// get friend list
+	virtual void getFriendlist(const muduo::net::TcpConnectionPtr &con,
 		json &js, muduo::Timestamp time)
 	{
 		
@@ -176,6 +176,24 @@ public:
 			con->send(backjs.dump());
 		}
 	}
+	//logout update database
+	virtual void logout(const muduo::net::TcpConnectionPtr &con,
+		json &js, muduo::Timestamp time)
+	{
+		int id = js["id"];
+		json back;
+		back["msgid"] = MSG_LOGOUT_ACK;
+		if (userModelPtr->logout(id))
+		{
+			back["code"] = ACK_SUCCESS;
+		}
+		else
+		{
+			back["code"] = ACK_ERROR;
+		}
+		con->send(back.dump());
+	}
+
 private:
 	unique_ptr<UserModelBase> userModelPtr;
 	unique_ptr<FriendModelBase> friendModelPtr;
