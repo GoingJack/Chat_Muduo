@@ -212,6 +212,44 @@ public:
 		back["onlinefriendlist"] = _mymap;
 		con->send(back.dump());
 	}
+	//find a user is exist on User
+	virtual void findUserWithId(const muduo::net::TcpConnectionPtr &con,
+		json &js, muduo::Timestamp time)
+	{
+		int id = js["friendid"];
+		muduo::string friendname;
+		json backjs;
+		backjs["msgid"] = MSG_ADD_FRIEND_EXIST_ACK;
+		if (userModelPtr->finduser(id, friendname))
+		{
+			backjs["code"] = ACK_SUCCESS;
+			backjs["friendname"] = friendname;
+		}
+		else
+		{
+			backjs["code"] = ACK_ERROR;
+		}
+		con->send(backjs.dump());
+	}
+	//insert into Request for add friend
+	virtual void commitAddFriendRequest(const muduo::net::TcpConnectionPtr &con,
+		json &js, muduo::Timestamp time)
+	{
+		json backjs;
+		backjs["msgid"] = MSG_ADD_FRIEND_ACK;
+		int userid = js["id"];
+		int friendid = js["friendid"];
+		muduo::string verifymsg = js["verifymsg"];
+		if (userModelPtr->addfriend(userid, friendid, verifymsg))
+		{
+			backjs["code"] = ACK_SUCCESS;
+		}
+		else
+		{
+			backjs["code"] = ACK_ERROR;
+		}
+		con->send(backjs.dump());
+	}
 private:
 	unique_ptr<UserModelBase> userModelPtr;
 	unique_ptr<FriendModelBase> friendModelPtr;

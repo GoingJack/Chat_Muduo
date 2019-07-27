@@ -12,6 +12,9 @@ volatile bool isReqFriendList = false;
 
 volatile bool isChatSend = false;
 
+volatile bool isFriendIdExist = false;
+volatile bool isSendAddFriend = false;
+
 
 // TcpClient绑定回调函数，当连接或者断开服务器时调用
 void ChatClient::onConnection(const muduo::net::TcpConnectionPtr &con)
@@ -43,6 +46,7 @@ void ChatClient::onMessage(const muduo::net::TcpConnectionPtr &con,
 	muduo::string msg(buf->retrieveAllAsString());
 	json js = json::parse(msg.c_str());
 
+	_myJSON = js;
 	if (js["msgid"] == MSG_LOGIN_ACK)//处理服务器响应的登录请求
 	{
 		dealServerLogin(js,con);
@@ -94,6 +98,30 @@ void ChatClient::onMessage(const muduo::net::TcpConnectionPtr &con,
 		std::map<int, muduo::string> _tmp = js["onlinefriendlist"];
 		_myfriendMap = _tmp;
 		sem_post(&_semOnLineFriend);//默认成功得到Map映射
+	}
+	else if (js["msgid"] == MSG_ADD_FRIEND_EXIST_ACK)//添加好友服务器确认消息
+	{
+		if (js["code"] == ACK_SUCCESS)//判断是否成功发送好友请求
+		{
+			isFriendIdExist = true;
+		}
+		else
+		{
+			isFriendIdExist = false;
+		}
+		sem_post(&_semAddFriend);
+	}
+	else if (js["msgid"] == MSG_ADD_FRIEND_ACK)
+	{
+		if (js["code"] == ACK_SUCCESS)//判断是否成功发送好友请求
+		{
+			isSendAddFriend = true;
+		}
+		else
+		{
+			isSendAddFriend = false;
+		}
+		sem_post(&_semAddFriend);
 	}
 
 }
@@ -263,7 +291,7 @@ void ChatClient::showLoginSuccessFun(json &js, const muduo::net::TcpConnectionPt
 	std::map<int, std::function<void(const muduo::net::TcpConnectionPtr &)>> actionMap;
 	actionMap.insert({ 1,bind(&ChatClient::showOnlineFriend,this,std::placeholders::_1) });
 	actionMap.insert({ 2,bind(&ChatClient::showAllfriend,this,std::placeholders::_1) });
-
+	actionMap.insert({ 6,bind(&ChatClient::addfriend,this,std::placeholders::_1) });
 	actionMap.insert({ 7,bind(&ChatClient::logout,this,std::placeholders::_1) });
 	int choice = 0;
 	for (;;)
@@ -357,7 +385,72 @@ void ChatClient::showOnlineFriend(const muduo::net::TcpConnectionPtr &con)
 	std::cout << "-----------------------------------------" << std::endl;
 }
 
+//添加好友请求
+void ChatClient::addfriend(const muduo::net::TcpConnectionPtr &con)
+{
+	//#1首先根据用户输入的ID在数据库中查询是否有此用户存在
+	json js;
+	js["msgid"] = MSG_ADD_FRIEND_EXIST;
+	js["id"] = userID;//userID will add friend
+	int friendid = 0;
+	
+	std::cout << "please input id that you will add:";
+	std::cin >> friendid;
+	js["friendid"] = friendid;
+	con->send(js.dump());
+	sem_wait(&_semAddFriend);
+	if (isFriendIdExist)//查询到用户所输入的ID
+	{
+		//打印搜索的用户的信息
+		std::cout << "id:" << js["friendid"] << "<->" << "username:" << _myJSON["friendname"] << std::endl;
+		//获取用户的验证消息
+		std::string verifymsg;
+		std::cout << "please input your verifymsg to your friend:";
+		//std::cin >> verifymsg;
+		char tmpstr[1024];
+		getchar();//吃掉回车
+		fgets(tmpstr, 1023, stdin);
+		tmpstr[strlen(tmpstr) - 1] = 0;
+		verifymsg = tmpstr;
 
+		js["verifymsg"] = verifymsg;
+		js["msgid"] = MSG_ADD_FRIEND;
+		con->send(js.dump());
+		sem_wait(&_semAddFriend);
+		if (isSendAddFriend)
+		{
+			std::cout << "send to " << js["username"] << "success!" << std::endl;
+		}
+		else
+		{
+			std::cout << "some error occured on server!please try again!" << std::endl;
+		}
+	}
+	else//数据库中不存在此用户
+	{
+		std::cout << "can not find user who's id is " << friendid << std::endl;
+		char c;
+		while (1)
+		{
+			std::cout << "please input y/n,y->continue search n->back to last menu";
+			
+			std::cin >> c;
+
+			if (c == 'y' || c == 'Y' || c == 'n' || c == 'N')
+			{
+				break;
+			}
+			else
+			{
+				std::cout << "invaild input ! try again!" << std::endl;
+			}
+		}
+		if (c == 'y' || c == 'Y')
+		{
+			addfriend(con);
+		}
+	}
+}
 
 
 

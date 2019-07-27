@@ -46,8 +46,11 @@ public:
 		//设置在线用户等待服务器响应的默认信号量的初值为0
 		sem_init(&_semOnLineFriend, false, 0);
 
-		//
+		//设置聊天等待服务器响应的默认信号量的初值为0
 		sem_init(&_semChat, false, 0);
+
+		//设置添加好友等待服务器响应的默认信号量的初值为0
+		sem_init(&_semAddFriend, false, 0);
 	}
 	// 连接服务器
 	void connect()
@@ -128,4 +131,14 @@ private:
 	void logout(const muduo::net::TcpConnectionPtr &con);
 	//注销使用的信号量
 	sem_t _semLogout;
+
+	//添加好友
+	void addfriend(const muduo::net::TcpConnectionPtr &con);
+	//添加好友等待服务器响应的信号量
+	sem_t _semAddFriend;
+
+	//好多成员函数都需要用到服务器发送过来的js格式的对象所以我这里直接定义一个json对象保存(OnMessage函数)每次服务器发送过来内容
+	json _myJSON;
+
+	//显示所有的Request这里目前指的是好友请求
 };

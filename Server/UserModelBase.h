@@ -21,17 +21,24 @@ public:
 	virtual bool logout(const int userid) = 0;
 	//从数据库中获取在线的好友列表
 	virtual bool onlinefriendlist(const int userid, std::map<int, muduo::string>&res) = 0;
+	//向数据库中查询好友
+	virtual bool finduser(const int userid,muduo::string &username) = 0;
+	//向Request表中添加相关的好友请求信息
+	virtual bool addfriend(const int userid, const int friendid, muduo::string &verifymsg) = 0;
+
 };
 
 // User表的Model层操作
 class UserModel : public UserModelBase
 {
+private:
+	char sql[1024];
 public:
+	UserModel() { memset(sql, 0, 1024); }
 	// 重写add接口方法，实现增加用户操作
 	bool add(UserDO &user)
 	{
 		// 组织sql语句
-		char sql[1024] = { 0 };
 		sprintf(sql, "insert into User(name,password,state) values('%s', '%s', '%s')",
 			user.getName().c_str(),
 			user.getPwd().c_str(),
@@ -54,7 +61,6 @@ public:
 	bool login(UserDO &user)
 	{
 		// 组织sql语句
-		char sql[1024] = { 0 };
 		sprintf(sql, "select id from User where name='%s' and password='%s'",
 			user.getName().c_str(),
 			user.getPwd().c_str());
@@ -90,7 +96,6 @@ public:
 	bool exit(UserDO &user)
 	{
 		// 组织sql语句
-		char sql[1024] = { 0 };
 		sprintf(sql, "update User set state = 'OFFLINE' where id = %d",
 			user.getID());
 
@@ -112,7 +117,6 @@ public:
 	bool friendlist(const int userid,std::map<int,muduo::string>&_resmap)
 	{
 		// 组织sql语句
-		char sql[1024] = { 0 };
 		sprintf(sql, "select  id,name from User where id in ( select friendid from Friend where userid = %d)",
 			userid
 			);
@@ -140,7 +144,6 @@ public:
 	}
 	bool logout(const int userid)
 	{
-		char sql[1024] = { 0 };
 		sprintf(sql, "update User set state = 'OFFLINE' where id = %d", userid);
 
 		MySQL mysql;
@@ -155,7 +158,6 @@ public:
 	}
 	bool onlinefriendlist(const int userid, std::map<int, muduo::string>&_mapres)
 	{
-		char sql[1024] = { 0 };
 		sprintf(sql, "select id,name from User where id in (select friendid from Friend where userid = %d) and state = 'ONLINE'"
 			, userid);
 		MySQL mysql;
@@ -176,5 +178,44 @@ public:
 		else
 			LOG_INFO << "function request online friendlist -> connect to database error!";
 		return false;
+	}
+	bool finduser(const int userid,muduo::string &name)
+	{
+		sprintf(sql, "select name from User where id = %d", userid);
+		MySQL mysql;
+		if (mysql.connect())
+		{
+			MYSQL_RES *res = mysql.query(sql);
+			if (res != nullptr)
+			{
+				MYSQL_ROW row;
+				row = mysql_fetch_row(res);
+				if (row != nullptr)
+				{
+					name = row[0];
+					return true;
+				}
+				return false;
+			}
+			LOG_INFO << "while try to find userid !query failed!";
+		}
+		LOG_INFO << "while try to find userid !connect to database failed!";
+		return false;
+	}
+	bool addfriend(const int userid, const int friendid, muduo::string &verifymsg)
+	{
+		sprintf(sql, "insert  Request (id,fromid,type,msg) VALUES(%d,%d,'F','%s')", userid, friendid, verifymsg.c_str());
+		MySQL mysql;
+		if (mysql.connect())
+		{
+			if (mysql.update(sql))
+			{
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
 	}
 };
