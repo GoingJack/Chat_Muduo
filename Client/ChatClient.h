@@ -57,6 +57,9 @@ public:
 
 		//初始化同意或者拒绝好友请求使用的信号量为0
 		sem_init(&_semAckAddFriend, false, 0);
+
+		//初始化
+		sem_init(&_semGroupChat, false, 0);
 	}
 	// 连接服务器
 	void connect()
@@ -64,6 +67,8 @@ public:
 		_client.connect();
 	}
 private:
+	muduo::string _myUsername;
+
 	// TcpClient绑定回调函数，当连接或者断开服务器时调用
 	void onConnection(const muduo::net::TcpConnectionPtr &con);
 	// TcpClient绑定回调函数，当有数据接收时调用
@@ -153,4 +158,21 @@ private:
 
 	//同意或者拒绝好友请求使用的信号量
 	sem_t _semAckAddFriend;
+
+	//群组聊天功能
+	//创建群组
+	void createGroup(const muduo::net::TcpConnectionPtr &con);
+	//加入群组
+	void joinGroup(const muduo::net::TcpConnectionPtr &con);
+	//显示所有已加入的群组
+	void showAllGroup(const muduo::net::TcpConnectionPtr &con);
+	//群组聊天
+	void chatGroup(const muduo::net::TcpConnectionPtr &con);
+	//群组聊天向服务器端发送消息等待确认信号量
+	sem_t _semGroupChat;
+
+	//聊天
+
+	//向没有在线的好友留言
+	void leaveMessage(const muduo::net::TcpConnectionPtr &con);
 };

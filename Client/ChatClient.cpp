@@ -144,6 +144,14 @@ void ChatClient::onMessage(const muduo::net::TcpConnectionPtr &con,
 	{
 		sem_post(&_semAckAddFriend);
 	}
+	else if (js["msgid"] == MSG_CHAT_GROUP_ACK)
+	{
+		sem_post(&_semGroupChat);
+	}
+	else if (js["msgid"] == MSG_CHAT_GROUP_RECV)
+	{
+		std::cout << js["groupname"] << "->" << js["username"] << ":" << js["content"] << std::endl;
+	}
 
 }
 
@@ -202,6 +210,7 @@ void ChatClient::dealLogin(const muduo::net::TcpConnectionPtr &con)
 	std::cout << "please input your username: ";
 	std::cin >> username;
 	js["username"] = username;
+	_myUsername = username;
 	//#1.3密码
 	std::cout << "please input your password: ";
 	std::cin >> password;
@@ -313,6 +322,7 @@ void ChatClient::showLoginSuccessFun(json &js, const muduo::net::TcpConnectionPt
 	actionMap.insert({ 1,bind(&ChatClient::showOnlineFriend,this,std::placeholders::_1) });
 	actionMap.insert({ 2,bind(&ChatClient::showAllfriend,this,std::placeholders::_1) });
 	actionMap.insert({ 3,bind(&ChatClient::showAllRequest,this,std::placeholders::_1) });
+	actionMap.insert({ 4,bind(&ChatClient::chatGroup,this,std::placeholders::_1) });
 	
 	actionMap.insert({ 6,bind(&ChatClient::addfriend,this,std::placeholders::_1) });
 	actionMap.insert({ 7,bind(&ChatClient::logout,this,std::placeholders::_1) });
@@ -577,5 +587,47 @@ void ChatClient::TestClientWith(const muduo::net::TcpConnectionPtr &con)
 		{
 			std::cout << "send failed!" << std::endl;
 		}
+	}
+}
+
+
+//向没有在线的好友留言
+
+
+
+//创建群组
+void createGroup(const muduo::net::TcpConnectionPtr &con)
+{
+
+}
+
+//显示所有已加入的群组
+void showAllGroup(const muduo::net::TcpConnectionPtr &con)
+{
+
+}
+
+//群组聊天
+void ChatClient::chatGroup(const muduo::net::TcpConnectionPtr &con)
+{
+	json back;
+	back["msgid"] = MSG_CHAT_GROUP;
+	int gid = 0;
+	std::cout << "please input gid that you want to chat with";
+	std::cin >> gid;
+	back["gid"] = gid;
+	back["username"] = _myUsername;
+	back["id"] = userID;
+	muduo::string content;
+	while (true)
+	{
+		std::cin >> content;
+		if (content == "end")
+		{
+			break;
+		}
+		back["content"] = content;
+		con->send(back.dump());
+		sem_wait(&_semGroupChat);
 	}
 }

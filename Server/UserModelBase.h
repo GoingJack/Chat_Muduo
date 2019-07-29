@@ -35,6 +35,8 @@ public:
 
 	//获取用户名字通过ID值
 	virtual muduo::string getUsernameFromId(const int userid) = 0;
+
+	
 };
 
 // User表的Model层操作
@@ -282,4 +284,5 @@ public:
 			return muduo::string(row[0]);
 		}
 	}
+	
 };

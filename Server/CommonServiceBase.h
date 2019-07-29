@@ -28,6 +28,7 @@ public:
 		_handlerMap.insert({ MSG_ADD_FRIEND,bind(&CommonServiceBase::commitAddFriendRequest,this,_1,_2,_3) });
 		_handlerMap.insert({ MSG_SHOW_ALL_REQUEST,bind(&CommonServiceBase::requestList,this,_1,_2,_3) });
 		_handlerMap.insert({ MSG_ACK_ADD_FRIEND,bind(&CommonServiceBase::ackAddFriend,this,_1,_2,_3) });
+		_handlerMap.insert({ MSG_CHAT_GROUP,bind(&CommonServiceBase::chatWithGroup,this,_1,_2,_3) });
 		// 继续给handler绑定更多的接口函数
 	}
 
@@ -78,6 +79,10 @@ public:
 		json &js, muduo::Timestamp time) = 0;
 	//ack add friend
 	virtual void ackAddFriend(const muduo::net::TcpConnectionPtr &con,
+		json &js, muduo::Timestamp time) = 0;
+
+	//chat with group
+	virtual void chatWithGroup(const muduo::net::TcpConnectionPtr &con,
 		json &js, muduo::Timestamp time) = 0;
 
 	using Handler = std::function<void(const muduo::net::TcpConnectionPtr&, json&, muduo::Timestamp)>;

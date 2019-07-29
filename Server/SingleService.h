@@ -290,6 +290,42 @@ public:
 		}
 		con->send(back.dump());
 	}
+	//chat with group
+	void chatWithGroup(const muduo::net::TcpConnectionPtr &con,
+		json &js, muduo::Timestamp time)
+	{
+//#1确认接受到客户端消息，发送确认信号使得客户端释放终端资源
+		int userid = js["id"];
+		std::vector<int> vec;
+		int gid = js["gid"];
+		json back;
+		back["msgid"] = MSG_CHAT_GROUP_ACK;
+		con->send(back.dump());
+//#2向所有已经存在维护的列表中的用户发送消息
+		json sendToMsg;
+		sendToMsg["msgid"] = MSG_CHAT_GROUP_RECV;
+		sendToMsg["gid"] = gid;
+		sendToMsg["username"] = js["username"];
+		sendToMsg["content"] = js["content"];
+		muduo::string groupname;
+		groupModelPtr->getGroupNameFromGid(groupname, gid);
+
+		sendToMsg["groupname"] = groupname;
+
+
+		if (groupModelPtr->getAllUidFromGid(vec, gid))
+		{
+			auto it = vec.begin();
+			for (; it != vec.end(); ++it)
+			{
+				auto _myFinder = _connMap.find(*it);
+				if (_myFinder != _connMap.end() && _myFinder->first != userid)
+				{
+					_myFinder->second->send(sendToMsg.dump());
+				}
+			}
+		}
+	}
 private:
 	unique_ptr<UserModelBase> userModelPtr;
 	unique_ptr<FriendModelBase> friendModelPtr;
