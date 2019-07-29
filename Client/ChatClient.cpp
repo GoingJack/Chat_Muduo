@@ -91,7 +91,7 @@ void ChatClient::onMessage(const muduo::net::TcpConnectionPtr &con,
 	}
 	else if (js["msgid"] == MSG_ONE_CHAT)//有新的聊天消息发送了过来
 	{
-		std::cout << js["id"] << ":" << js["chatmsg"] << std::endl;
+		std::cout << js["username"] << ":" << js["chatmsg"] << std::endl;
 	}
 	else if (js["msgid"] == MSG_LOGOUT_ACK)//退出登录的服务器确认操作
 	{
@@ -406,6 +406,7 @@ void ChatClient::showOnlineFriend(const muduo::net::TcpConnectionPtr &con)
 		++it;
 	}
 	std::cout << "-----------------------------------------" << std::endl;
+	chatwithonefriend(con);
 }
 
 //添加好友请求
@@ -561,6 +562,10 @@ void ChatClient::TestClientWith(const muduo::net::TcpConnectionPtr &con)
 		//std::cout << "input your content:";
 		std::string content;
 		std::cin >> content;
+		if (content == "end")
+		{
+			break;
+		}
 		json js;
 		js["msgid"] = MSG_ONE_CHAT;
 		js["chatmsg"] = content;

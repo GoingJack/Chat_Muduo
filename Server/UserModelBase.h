@@ -32,6 +32,9 @@ public:
 
 	//接受好友请求
 	virtual bool acceptRequest(const int userid, const int friendid)=0;
+
+	//获取用户名字通过ID值
+	virtual muduo::string getUsernameFromId(const int userid) = 0;
 };
 
 // User表的Model层操作
@@ -267,5 +270,16 @@ public:
 			}
 		}
 		return false;
+	}
+	virtual muduo::string getUsernameFromId(const int userid)
+	{
+		sprintf(sql, "select name from User where id = %d", userid);
+		MySQL mysql;
+		if (mysql.connect())
+		{
+			MYSQL_RES *res = mysql.query(sql);
+			MYSQL_ROW row = mysql_fetch_row(res);
+			return muduo::string(row[0]);
+		}
 	}
 };

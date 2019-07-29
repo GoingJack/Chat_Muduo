@@ -123,8 +123,12 @@ public:
 
 		json msg;
 		msg["msgid"] = MSG_ONE_CHAT;
-		msg["id"] = js["fromid"];
+
+		int userid = js["fromid"];
+		msg["id"] = userid;
+		muduo::string username = userModelPtr->getUsernameFromId(userid);
 		msg["chatmsg"] = js["chatmsg"];
+		msg["username"] = username;
 		it->second->send(msg.dump());
 	}
 
