@@ -51,6 +51,12 @@ public:
 
 		//设置添加好友等待服务器响应的默认信号量的初值为0
 		sem_init(&_semAddFriend, false, 0);
+
+		//设置显示所有请求等待服务器响应的默认信号量的初值为0
+		sem_init(&_semShowAllRequest, false, 0);
+
+		//初始化同意或者拒绝好友请求使用的信号量为0
+		sem_init(&_semAckAddFriend, false, 0);
 	}
 	// 连接服务器
 	void connect()
@@ -141,4 +147,10 @@ private:
 	json _myJSON;
 
 	//显示所有的Request这里目前指的是好友请求
+	void showAllRequest(const muduo::net::TcpConnectionPtr &con);
+	//请求所有的好友请求列表之后的信号量
+	sem_t _semShowAllRequest;
+
+	//同意或者拒绝好友请求使用的信号量
+	sem_t _semAckAddFriend;
 };

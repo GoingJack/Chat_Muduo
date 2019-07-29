@@ -31,5 +31,11 @@ const int MSG_REQUEST_ONLINE_FRIEND_ACK = 15;
 const int MSG_ADD_FRIEND_EXIST = 16; // in order to verify friend id is or is not exist
 const int MSG_ADD_FRIEND_EXIST_ACK = 17; // in order to verify friend id is or is not exist
 
+const int MSG_SHOW_ALL_REQUEST = 18;//show all request 
+const int MSG_SHOW_ALL_REQUEST_ACK = 19;//ack msg for show all request
+
+const int MSG_ACK_ADD_FRIEND = 20;
+const int MSG_ACK_ADD_FRIEND_ACK = 21;
+
 const int ACK_SUCCESS = 100; // msg process ok
 const int ACK_ERROR = 101; // msg process err

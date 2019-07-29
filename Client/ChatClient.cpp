@@ -5,6 +5,8 @@
 #include "ChatClient.h"
 #include "public.h"
 
+#include <map>
+
 //----------------全局变量------------------------------
 volatile bool isLoginSuccess = false;
 volatile bool isResSuccess = false;
@@ -14,6 +16,9 @@ volatile bool isChatSend = false;
 
 volatile bool isFriendIdExist = false;
 volatile bool isSendAddFriend = false;
+
+//服务器响应所有的好友请求是否请求成功
+volatile bool isShowAllRequest = false;
 
 
 // TcpClient绑定回调函数，当连接或者断开服务器时调用
@@ -122,6 +127,22 @@ void ChatClient::onMessage(const muduo::net::TcpConnectionPtr &con,
 			isSendAddFriend = false;
 		}
 		sem_post(&_semAddFriend);
+	}
+	else if (js["msgid"] == MSG_SHOW_ALL_REQUEST_ACK)
+	{
+		if (js["code"] == ACK_SUCCESS)
+		{
+			isShowAllRequest = true;
+		}
+		else
+		{
+			isShowAllRequest = false;
+		}
+		sem_post(&_semShowAllRequest);
+	}
+	else if (js["msgid"] == MSG_ACK_ADD_FRIEND_ACK)
+	{
+		sem_post(&_semAckAddFriend);
 	}
 
 }
@@ -291,6 +312,8 @@ void ChatClient::showLoginSuccessFun(json &js, const muduo::net::TcpConnectionPt
 	std::map<int, std::function<void(const muduo::net::TcpConnectionPtr &)>> actionMap;
 	actionMap.insert({ 1,bind(&ChatClient::showOnlineFriend,this,std::placeholders::_1) });
 	actionMap.insert({ 2,bind(&ChatClient::showAllfriend,this,std::placeholders::_1) });
+	actionMap.insert({ 3,bind(&ChatClient::showAllRequest,this,std::placeholders::_1) });
+	
 	actionMap.insert({ 6,bind(&ChatClient::addfriend,this,std::placeholders::_1) });
 	actionMap.insert({ 7,bind(&ChatClient::logout,this,std::placeholders::_1) });
 	int choice = 0;
@@ -343,10 +366,10 @@ void ChatClient::showAllfriend(const muduo::net::TcpConnectionPtr &con)
 
 }
 
-//和指定好友进行聊天
+//** 在显示在线好友列表的基础上   和指定好友进行聊天
 void ChatClient::chatwithonefriend(const muduo::net::TcpConnectionPtr &con)
 {
-
+	TestClientWith(con);
 }
 
 //注销当前用户
@@ -428,7 +451,7 @@ void ChatClient::addfriend(const muduo::net::TcpConnectionPtr &con)
 	}
 	else//数据库中不存在此用户
 	{
-		std::cout << "can not find user who's id is " << friendid << std::endl;
+		std::cout << "can not find user whose id is " << friendid << std::endl;
 		char c;
 		while (1)
 		{
@@ -452,7 +475,69 @@ void ChatClient::addfriend(const muduo::net::TcpConnectionPtr &con)
 	}
 }
 
+//显示所有的Request这里目前指的是好友请求
+void ChatClient::showAllRequest(const muduo::net::TcpConnectionPtr &con)
+{
+	json js;
+	js["msgid"] = MSG_SHOW_ALL_REQUEST;
+	js["id"] = userID;
+	con->send(js.dump());
+	sem_wait(&_semShowAllRequest);
+	if (isShowAllRequest)
+	{
+		std::map<int, muduo::string> requestList = _myJSON["List"];
 
+		auto it = requestList.begin();
+
+		std::cout << "userid" << " " << "msg" << std::endl;
+		for (; it != requestList.end(); ++it)
+		{
+			std::cout << it->first << " " << it->second << std::endl;
+		}
+		muduo::string op;
+		while (true)
+		{
+			int id;
+			std::cout << "please input your op(y->agree,n->refused,end->back):";
+			std::cin >> op;
+			if (op == "end")
+			{
+				break;
+			}
+			else if (op == "y")
+			{
+				while (true)
+				{
+					std::cout << "please input your agree's id:";
+					std::cin >> id;
+					auto _finder = requestList.find(id);
+					if (_finder != requestList.end())
+					{
+						json sendToServer;
+						sendToServer["msgid"] = MSG_ACK_ADD_FRIEND;
+						sendToServer["type"] = 'y';
+						sendToServer["friendid"] = id;
+						sendToServer["userid"] = userID;
+						con->send(sendToServer.dump());
+						sem_wait(&_semAckAddFriend);
+						std::cout << "operator success!" << std::endl;
+						break;
+					}
+
+					std::cout << "your input id is not in request list,please try again.";
+				}
+			}
+			else
+			{
+
+			}
+		}
+	}
+	else
+	{
+
+	}
+}
 
 
 
@@ -463,8 +548,14 @@ void ChatClient::addfriend(const muduo::net::TcpConnectionPtr &con)
 void ChatClient::TestClientWith(const muduo::net::TcpConnectionPtr &con)
 {
 	int id = 0;
-	std::cout << "input your friend id" << std::endl;
+	std::cout << "input your friend id,while you input \"end\" to end this session." << std::endl;
 	std::cin >> id;
+	auto _myFinder = _myfriendMap.find(id);
+	if (_myFinder == _myfriendMap.end())
+	{
+		std::cout << "your input id is not your friend or your friend is OFFLINE!";
+		return;
+	}
 	while (1)
 	{
 		//std::cout << "input your content:";
@@ -473,13 +564,13 @@ void ChatClient::TestClientWith(const muduo::net::TcpConnectionPtr &con)
 		json js;
 		js["msgid"] = MSG_ONE_CHAT;
 		js["chatmsg"] = content;
-		js["id"] = id;
-		js["fromid"] = userID;
+		js["id"] = id;//要发送给好友的ID
+		js["fromid"] = userID;//自己的ID
 		con->send(js.dump());
 		sem_wait(&_semChat);
 		if (!isChatSend)
 		{
-			std::cout << "send failed" << std::endl;
+			std::cout << "send failed!" << std::endl;
 		}
 	}
 }

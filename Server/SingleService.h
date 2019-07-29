@@ -250,6 +250,42 @@ public:
 		}
 		con->send(backjs.dump());
 	}
+	//request request list
+	virtual void requestList(const muduo::net::TcpConnectionPtr &con,
+		json &js, muduo::Timestamp time)
+	{
+		int userid = js["id"];
+		std::map<int, muduo::string> _resMap;
+		json back;
+		back["msgid"] = MSG_SHOW_ALL_REQUEST_ACK;
+		if (userModelPtr->requestList(userid, _resMap))
+		{
+			back["code"] = ACK_SUCCESS;
+			back["List"] = _resMap;
+		}
+		else
+		{
+			back["code"] = ACK_ERROR;
+		}
+		con->send(back.dump());
+	}
+	void ackAddFriend(const muduo::net::TcpConnectionPtr &con,
+		json &js, muduo::Timestamp time)
+	{
+		int userid = js["userid"];
+		int friendid = js["friendid"];
+		json back;
+		back["msgid"] = MSG_ACK_ADD_FRIEND_ACK;
+		if (userModelPtr->acceptRequest(userid, friendid))
+		{
+			back["code"] = ACK_SUCCESS;
+		}
+		else
+		{
+			back["code"] = ACK_ERROR;
+		}
+		con->send(back.dump());
+	}
 private:
 	unique_ptr<UserModelBase> userModelPtr;
 	unique_ptr<FriendModelBase> friendModelPtr;

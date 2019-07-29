@@ -3,6 +3,7 @@
 #include "UserDO.h"
 #include "MySQL.h"
 #include <map>
+#include <vector>
 
 
 // Model层的抽象类
@@ -26,6 +27,11 @@ public:
 	//向Request表中添加相关的好友请求信息
 	virtual bool addfriend(const int userid, const int friendid, muduo::string &verifymsg) = 0;
 
+	//发送好友申请列表请求
+	virtual bool requestList(const int userid, std::map<int, muduo::string>&_resmap) = 0;
+
+	//接受好友请求
+	virtual bool acceptRequest(const int userid, const int friendid)=0;
 };
 
 // User表的Model层操作
@@ -217,5 +223,49 @@ public:
 				return false;
 			}
 		}
+	}
+
+	//发送好友申请列表请求
+	bool requestList(const int userid,std::map<int,muduo::string>&_resmap)
+	{
+		sprintf(sql, "select id,msg from Request where type = 'F' and fromid = %d", userid);
+		MySQL mysql;
+		if (mysql.connect())
+		{
+			MYSQL_RES *res = mysql.query(sql);
+			if (res != nullptr)
+			{
+				MYSQL_ROW row;
+				while (row = mysql_fetch_row(res))
+				{
+					int id = atoi(row[0]);
+					_resmap[id] = row[1];
+				}
+				return true;
+			}
+		}
+		LOG_INFO << "mysql connect failed!";
+		return false;
+	}
+
+	//接受好友请求
+	bool acceptRequest(const int userid, const int friendid)
+	{
+		sprintf(sql, "delete from Request where id = %d and fromid = %d", friendid, userid);
+		MySQL mysql;
+		if (mysql.connect())
+		{
+			if (mysql.update(sql))//删除一条记录 添加俩条记录
+			{
+				sprintf(sql, "insert Friend (userid,friendid) VALUES(%d,%d)", friendid, userid);
+				if (mysql.update(sql))
+				{
+					sprintf(sql, "insert Friend (userid,friendid) VALUES(%d,%d)", userid, friendid);
+					if (mysql.update(sql))
+						return true;
+				}
+			}
+		}
+		return false;
 	}
 };
