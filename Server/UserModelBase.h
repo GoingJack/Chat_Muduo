@@ -36,6 +36,9 @@ public:
 	//获取用户名字通过ID值
 	virtual muduo::string getUsernameFromId(const int userid) = 0;
 
+	//redis 消息队列使用的方法
+	virtual bool isIDOnline(const int userid) = 0;
+
 	
 };
 
@@ -284,5 +287,16 @@ public:
 			return muduo::string(row[0]);
 		}
 	}
-	
+	virtual bool isIDOnline(const int userid)
+	{
+		sprintf(sql, "select name from User where id = %d", userid);
+		MySQL mysql;
+		if (mysql.connect())
+		{
+			MYSQL_RES *res = mysql.query(sql);
+			if (res != nullptr)
+				return true;
+		}
+		return false;
+	}
 };

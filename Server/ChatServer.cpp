@@ -1,5 +1,5 @@
 #include "ChatServer.h"
-#include "SingleService.h"
+#include "ClusterService.h"
 #include <thread>
 
 /*

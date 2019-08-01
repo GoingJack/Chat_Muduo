@@ -340,6 +340,7 @@ private:
 		, friendModelPtr(new FriendModel())
 		, groupModelPtr(new GroupModel())
 	{}
+	
 };
 
 // 全局接口，返回SingleService服务的唯一实例
